@@ -1,10 +1,10 @@
-"use client"
-import Image from "next/image"
-import type React from "react"
+"use client";
+import Image from "next/image";
+import type React from "react";
 
-import Link from "next/link"
-import { useState, useEffect, useCallback } from "react"
-import { Button } from "@/components/ui/button"
+import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 import {
   BookOpen,
   Brush,
@@ -16,10 +16,11 @@ import {
   Check,
   AlertCircle,
   XCircle,
-} from "lucide-react"
-import { useAOS } from "@/hooks/use-aos"
-import { Badge } from "@/components/ui/badge"
-import { featureItems, benefitItems, heroBookCovers } from "@/lib/consts"
+} from "lucide-react";
+import { useAOS } from "@/hooks/use-aos";
+import { Badge } from "@/components/ui/badge";
+import { featureItems, benefitItems, heroBookCovers } from "@/lib/consts";
+import { submitEarlyAccess } from "@/lib/actions";
 
 // Define the showcase items with the new images
 const showcaseItems = [
@@ -33,147 +34,117 @@ const showcaseItems = [
     title: "كسوف الشمس",
     image: "/images/solar-eclipse.png",
   },
-]
+];
 
 export default function Home() {
   // Initialize AOS
-  useAOS()
+  useAOS();
 
   // State for subscription form
-  const [email, setEmail] = useState("")
-  const [emailError, setEmailError] = useState("")
-  const [name, setName] = useState("")
-  const [nameError, setNameError] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [submitError, setSubmitError] = useState("")
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [name, setName] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // State for hero book cover rotation
-  const [currentBookIndex, setCurrentBookIndex] = useState(0)
-  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [currentBookIndex, setCurrentBookIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Function to validate email
   const validateEmail = (email: string) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return re.test(email)
-  }
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
 
   // Function to validate name
   const validateName = (name: string) => {
-    return name.trim().length >= 2
-  }
+    return name.trim().length >= 2;
+  };
 
   // Function to rotate book covers
   const rotateBookCover = useCallback(() => {
-    setIsTransitioning(true)
+    setIsTransitioning(true);
     setTimeout(() => {
-      setCurrentBookIndex((prevIndex) => (prevIndex + 1) % heroBookCovers.length)
-      setIsTransitioning(false)
-    }, 300)
-  }, [])
+      setCurrentBookIndex(
+        (prevIndex) => (prevIndex + 1) % heroBookCovers.length
+      );
+      setIsTransitioning(false);
+    }, 300);
+  }, []);
 
   // Set up automatic rotation
   useEffect(() => {
-    const interval = setInterval(rotateBookCover, 5000)
-    return () => clearInterval(interval)
-  }, [rotateBookCover])
+    const interval = setInterval(rotateBookCover, 5000);
+    return () => clearInterval(interval);
+  }, [rotateBookCover]);
 
   // Handle subscription form submission
   const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     // Reset error states
-    setSubmitError("")
+    setSubmitError("");
 
     // Validate inputs
-    let hasError = false
+    let hasError = false;
 
     if (!validateName(name)) {
-      setNameError("يرجى إدخال اسمك الكامل")
-      hasError = true
+      setNameError("يرجى إدخال اسمك الكامل");
+      hasError = true;
     } else {
-      setNameError("")
+      setNameError("");
     }
 
     if (!validateEmail(email)) {
-      setEmailError("يرجى إدخال بريد إلكتروني صحيح")
-      hasError = true
+      setEmailError("يرجى إدخال بريد إلكتروني صحيح");
+      hasError = true;
     } else {
-      setEmailError("")
+      setEmailError("");
     }
 
-    if (hasError) return
+    if (hasError) return;
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
-      // For development/preview environments, simulate a successful response
-      // This helps avoid CORS issues during development
-      if (
-        window.location.hostname === "localhost" ||
-        window.location.hostname.includes("vercel.app") ||
-        window.location.hostname.includes("v0.dev")
-      ) {
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+      const res = await submitEarlyAccess(name, email);
+      const data = await res.json();
 
-        console.log("Development mode: Simulating successful API response")
-        setIsSubmitting(false)
-        setIsSubmitted(true)
-        setName("")
-        setEmail("")
-        return
-      }
-
-      // In production, make the actual API call
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
-
-      const response = await fetch("https://pwldx7xdpbsnlzmjp534n2cuvu0xrzaz.lambda-url.me-south-1.on.aws/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          email,
-        }),
-        signal: controller.signal,
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      console.log("Success:", data)
-      setIsSubmitting(false)
-      setIsSubmitted(true)
-      setName("")
-      setEmail("")
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+      setName("");
+      setEmail("");
     } catch (error) {
-      console.error("Error:", error)
-      setIsSubmitting(false)
+      console.error("Error:", error);
+      setIsSubmitting(false);
 
-      // Set appropriate error message based on the error
+      // Handle network or timeout errors
       if (error instanceof TypeError && error.message === "Failed to fetch") {
-        setSubmitError("تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.")
+        setSubmitError(
+          "تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى."
+        );
       } else if (error instanceof DOMException && error.name === "AbortError") {
-        setSubmitError("انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.")
+        setSubmitError("انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.");
       } else {
-        setSubmitError("حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى لاحقًا.")
+        setSubmitError(
+          "حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى لاحقًا."
+        );
       }
     }
-  }
+  };
 
   return (
     <main className="bg-white text-black overflow-hidden">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md shadow-sm">
         <div className="max-w-7xl mx-auto px-6 md:px-8 py-4 flex justify-between items-center">
-          <Link href="/" className="font-serif font-bold text-3xl leading-none text-black">
+          <Link
+            href="/"
+            className="font-serif font-bold text-3xl leading-none text-black"
+          >
             عليم
           </Link>
           <Button asChild variant="outline" className="rounded-full">
@@ -204,7 +175,8 @@ export default function Home() {
                 <span className="block">إلى الخلاصة المصورة</span>
               </h1>
               <p className="text-xl text-gray-700 mb-8 max-w-lg">
-                نلخّص المعرفة، ونرسمها لك. أول تطبيق عربي يحوّل الكتب إلى ملخّصات مصوّرة بالذكاء الاصطناعي
+                نلخّص المعرفة، ونرسمها لك. أول تطبيق عربي يحوّل الكتب إلى
+                ملخّصات مصوّرة بالذكاء الاصطناعي
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-start">
                 <Button
@@ -242,15 +214,22 @@ export default function Home() {
                 >
                   <div className="aspect-[2/3] relative">
                     <Image
-                      src={heroBookCovers[currentBookIndex].image || "/placeholder.svg"}
+                      src={
+                        heroBookCovers[currentBookIndex].image ||
+                        "/placeholder.svg"
+                      }
                       alt={`ملخص كتاب ${heroBookCovers[currentBookIndex].title}`}
                       layout="fill"
                       objectFit="cover"
-                      className={`object-center transition-opacity duration-300 ${isTransitioning ? "opacity-0" : "opacity-100"}`}
+                      className={`object-center transition-opacity duration-300 ${
+                        isTransitioning ? "opacity-0" : "opacity-100"
+                      }`}
                     />
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-white">
-                    <h3 className="text-xl font-bold mb-2">ملخص كتاب "{heroBookCovers[currentBookIndex].title}"</h3>
+                    <h3 className="text-xl font-bold mb-2">
+                      ملخص كتاب "{heroBookCovers[currentBookIndex].title}"
+                    </h3>
                     <p>{heroBookCovers[currentBookIndex].description}</p>
                   </div>
                 </div>
@@ -263,11 +242,19 @@ export default function Home() {
       {/* Features */}
       <section id="features" className="py-20 md:py-32">
         <div className="max-w-7xl mx-auto px-6 md:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16" data-aos="fade-up">
-            <Badge className="mb-4 bg-black/10 text-black hover:bg-black/20">المميزات</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">لماذا تختار "عليم"؟</h2>
+          <div
+            className="text-center max-w-3xl mx-auto mb-16"
+            data-aos="fade-up"
+          >
+            <Badge className="mb-4 bg-black/10 text-black hover:bg-black/20">
+              المميزات
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              لماذا تختار "عليم"؟
+            </h2>
             <p className="text-xl text-gray-600">
-              نقدم لك تجربة فريدة في تلخيص الكتب وتحويلها إلى محتوى مرئي يسهل فهمه وتذكره
+              نقدم لك تجربة فريدة في تلخيص الكتب وتحويلها إلى محتوى مرئي يسهل
+              فهمه وتذكره
             </p>
           </div>
 
@@ -281,8 +268,8 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-bold mb-4">تلخيص ذكي</h3>
               <p className="text-gray-600">
-                نلخص لك محتوى الكتاب بدقة ووضوح باستخدام الذكاء الاصطناعي، مع التركيز على الأفكار الرئيسية والمفاهيم
-                المهمة.
+                نلخص لك محتوى الكتاب بدقة ووضوح باستخدام الذكاء الاصطناعي، مع
+                التركيز على الأفكار الرئيسية والمفاهيم المهمة.
               </p>
             </div>
 
@@ -296,7 +283,8 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-bold mb-4">تحويل النص إلى صور</h3>
               <p className="text-gray-600">
-                نحول الأفكار إلى مشاهد بصرية تجعل الفهم أسهل وأمتع، مما يساعدك على تذكر المعلومات لفترة أطول.
+                نحول الأفكار إلى مشاهد بصرية تجعل الفهم أسهل وأمتع، مما يساعدك
+                على تذكر المعلومات لفترة أطول.
               </p>
             </div>
 
@@ -310,7 +298,8 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-bold mb-4">دعم كامل للغة العربية</h3>
               <p className="text-gray-600">
-                مصمم خصيصًا للمستخدم العربي، بلغة عربية فصيحة وواضحة، مع مراعاة خصوصية الثقافة العربية.
+                مصمم خصيصًا للمستخدم العربي، بلغة عربية فصيحة وواضحة، مع مراعاة
+                خصوصية الثقافة العربية.
               </p>
             </div>
           </div>
@@ -326,7 +315,8 @@ export default function Home() {
               <div>
                 <h3 className="text-xl font-bold mb-2">جودة عالية</h3>
                 <p className="text-gray-600">
-                  نستخدم أحدث تقنيات الذكاء الاصطناعي لضمان جودة عالية في التلخيص والتصوير.
+                  نستخدم أحدث تقنيات الذكاء الاصطناعي لضمان جودة عالية في
+                  التلخيص والتصوير.
                 </p>
               </div>
             </div>
@@ -341,7 +331,8 @@ export default function Home() {
               <div>
                 <h3 className="text-xl font-bold mb-2">مشاركة سهلة</h3>
                 <p className="text-gray-600">
-                  شارك الملخصات المصورة مع أصدقائك وزملائك بسهولة عبر مختلف منصات التواصل الاجتماعي.
+                  شارك الملخصات المصورة مع أصدقائك وزملائك بسهولة عبر مختلف
+                  منصات التواصل الاجتماعي.
                 </p>
               </div>
             </div>
@@ -352,11 +343,19 @@ export default function Home() {
       {/* How It Works */}
       <section className="py-20 md:py-32 bg-black/5">
         <div className="max-w-7xl mx-auto px-6 md:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16" data-aos="fade-up">
-            <Badge className="mb-4 bg-black/10 text-black hover:bg-black/20">كيف يعمل</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">خطوات بسيطة للبدء</h2>
+          <div
+            className="text-center max-w-3xl mx-auto mb-16"
+            data-aos="fade-up"
+          >
+            <Badge className="mb-4 bg-black/10 text-black hover:bg-black/20">
+              كيف يعمل
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              خطوات بسيطة للبدء
+            </h2>
             <p className="text-xl text-gray-600">
-              استخدام عليم سهل وبسيط، اتبع هذه الخطوات للحصول على ملخصات مصورة رائعة
+              استخدام عليم سهل وبسيط، اتبع هذه الخطوات للحصول على ملخصات مصورة
+              رائعة
             </p>
           </div>
 
@@ -382,10 +381,19 @@ export default function Home() {
       {/* Showcase */}
       <section className="py-20 md:py-32 overflow-hidden bg-white">
         <div className="max-w-7xl mx-auto px-6 md:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16" data-aos="fade-up">
-            <Badge className="mb-4 bg-black/10 text-black hover:bg-black/20">معرض الأعمال</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">أمثلة من ملخصاتنا المصورة</h2>
-            <p className="text-xl text-gray-600">شاهد كيف يقوم عليم بتحويل الكتب إلى ملخصات مصورة جذابة وسهلة الفهم</p>
+          <div
+            className="text-center max-w-3xl mx-auto mb-16"
+            data-aos="fade-up"
+          >
+            <Badge className="mb-4 bg-black/10 text-black hover:bg-black/20">
+              معرض الأعمال
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              أمثلة من ملخصاتنا المصورة
+            </h2>
+            <p className="text-xl text-gray-600">
+              شاهد كيف يقوم عليم بتحويل الكتب إلى ملخصات مصورة جذابة وسهلة الفهم
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto">
@@ -413,23 +421,38 @@ export default function Home() {
       </section>
 
       {/* Early Access */}
-      <section id="early-access" className="py-20 md:py-32 relative overflow-hidden">
+      <section
+        id="early-access"
+        className="py-20 md:py-32 relative overflow-hidden"
+      >
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute left-1/4 top-0 w-1/2 h-1/2 bg-gradient-to-br from-black/5 to-transparent rounded-full blur-3xl"></div>
           <div className="absolute right-1/4 bottom-0 w-1/2 h-1/2 bg-gradient-to-tl from-black/5 to-transparent rounded-full blur-3xl"></div>
         </div>
 
         <div className="max-w-4xl mx-auto px-6 md:px-8 relative">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 border border-black/10" data-aos="fade-up">
+          <div
+            className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 border border-black/10"
+            data-aos="fade-up"
+          >
             <div className="text-center mb-8">
-              <Badge className="mb-4 bg-black/10 text-black hover:bg-black/20">الوصول المبكر</Badge>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">انضم إلى النسخة التجريبية المبكرة</h2>
+              <Badge className="mb-4 bg-black/10 text-black hover:bg-black/20">
+                الوصول المبكر
+              </Badge>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                انضم إلى النسخة التجريبية المبكرة
+              </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                كن من أوائل من يحصلون على تجربة "عليم" قبل الإطلاق الرسمي واحصل على ميزات حصرية!
+                كن من أوائل من يحصلون على تجربة "عليم" قبل الإطلاق الرسمي واحصل
+                على ميزات حصرية!
               </p>
             </div>
 
-            <form className="max-w-md mx-auto w-full" onSubmit={handleSubscribe} noValidate>
+            <form
+              className="max-w-md mx-auto w-full"
+              onSubmit={handleSubscribe}
+              noValidate
+            >
               <div className="flex flex-col gap-3 w-full">
                 {!isSubmitted ? (
                   <>
@@ -438,12 +461,14 @@ export default function Home() {
                         type="text"
                         placeholder="الاسم الكامل"
                         className={`px-4 py-3 rounded-full border ${
-                          nameError ? "border-red-500 focus:ring-red-200" : "border-gray-300 focus:ring-black/20"
+                          nameError
+                            ? "border-red-500 focus:ring-red-200"
+                            : "border-gray-300 focus:ring-black/20"
                         } focus:outline-none focus:ring-2 text-right`}
                         value={name}
                         onChange={(e) => {
-                          setName(e.target.value)
-                          if (nameError) setNameError("")
+                          setName(e.target.value);
+                          if (nameError) setNameError("");
                         }}
                         disabled={isSubmitting}
                       />
@@ -459,12 +484,14 @@ export default function Home() {
                         type="email"
                         placeholder="البريد الإلكتروني"
                         className={`px-4 py-3 rounded-full border ${
-                          emailError ? "border-red-500 focus:ring-red-200" : "border-gray-300 focus:ring-black/20"
+                          emailError
+                            ? "border-red-500 focus:ring-red-200"
+                            : "border-gray-300 focus:ring-black/20"
                         } focus:outline-none focus:ring-2 text-right`}
                         value={email}
                         onChange={(e) => {
-                          setEmail(e.target.value)
-                          if (emailError) setEmailError("")
+                          setEmail(e.target.value);
+                          if (emailError) setEmailError("");
                         }}
                         disabled={isSubmitting}
                       />
@@ -530,22 +557,22 @@ export default function Home() {
             <div className="mt-8 pt-8 border-t border-gray-200 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               {benefitItems.map((item, i) => {
                 // Dynamically render the icon based on the name
-                let IconComponent
+                let IconComponent;
                 switch (item.icon) {
                   case "BookMarked":
-                    IconComponent = BookMarked
-                    break
+                    IconComponent = BookMarked;
+                    break;
                   case "Users":
-                    IconComponent = Users
-                    break
+                    IconComponent = Users;
+                    break;
                   case "Star":
-                    IconComponent = Star
-                    break
+                    IconComponent = Star;
+                    break;
                   case "BookOpen":
-                    IconComponent = BookOpen
-                    break
+                    IconComponent = BookOpen;
+                    break;
                   default:
-                    IconComponent = Star
+                    IconComponent = Star;
                 }
 
                 return (
@@ -553,7 +580,7 @@ export default function Home() {
                     <IconComponent className="h-6 w-6 mx-auto mb-2" />
                     <p className="text-sm font-medium">{item.text}</p>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
@@ -564,15 +591,22 @@ export default function Home() {
       <footer className="bg-black text-white py-10">
         <div className="max-w-7xl mx-auto px-6 md:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <Link href="/" className="inline-block mb-3 md:mb-0 order-2 md:order-1">
-              <h3 className="font-serif font-bold text-3xl leading-none text-white">عليم</h3>
+            <Link
+              href="/"
+              className="inline-block mb-3 md:mb-0 order-2 md:order-1"
+            >
+              <h3 className="font-serif font-bold text-3xl leading-none text-white">
+                عليم
+              </h3>
             </Link>
             <div className="order-1 md:order-2">
-              <p className="text-gray-400 text-sm">© 2025 عليم. جميع الحقوق محفوظة</p>
+              <p className="text-gray-400 text-sm">
+                © 2025 عليم. جميع الحقوق محفوظة
+              </p>
             </div>
           </div>
         </div>
       </footer>
     </main>
-  )
+  );
 }
